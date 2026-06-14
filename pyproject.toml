@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "radar-reconstruction"
+version = "0.1.0"
+description = "Radar antenna-signal reconstruction with a stacking ensemble"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch==2.5.1+cu121",
+  "torchvision==0.20.1+cu121",
+  "torchaudio==2.5.1+cu121",
+  "numpy>=1.23",
+  "pandas>=1.5",
+  "matplotlib>=3.6",
+  "scikit-learn>=1.2",
+  "xgboost>=1.7",
+  "joblib>=1.2",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu121" }
+torchvision = { index = "pytorch-cu121" }
+torchaudio = { index = "pytorch-cu121" }
+
+[tool.setuptools]
+include-package-data = true
+py-modules = [
+  "config",
+  "data",
+  "ensemble",
+  "evaluate",
+  "features",
+  "generate_data",
+  "infer",
+  "main",
+  "members",
+  "metrics",
+  "model",
+  "run_ensemble",
+  "test_ensemble",
+  "train",
+  "viz",
+]
