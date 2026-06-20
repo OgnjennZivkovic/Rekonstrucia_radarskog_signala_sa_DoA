@@ -13,8 +13,11 @@ DoA metric (per scenario, via MUSIC):
   - mean angle error and detection rate, computed on the RECONSTRUCTED array
     and on the TRUE array, so you see how much reconstruction degraded the
     angle information rather than how good MUSIC is.
+  - figdir: if provided, saves per-K MUSIC spectra plots
+  - by_K: per-number-of-sources breakdown in returned dict
 """
 
+import os
 import numpy as np
 
 
@@ -126,12 +129,13 @@ def _match_error(est, true):
     return errs.mean(), float((errs < 2.0).mean())
 
 
-def doa_metric(reconstruct_fn, test_scen, cfg, stats, n_eval=None):
+def doa_metric(reconstruct_fn, test_scen, cfg, stats, n_eval=None, figdir=None):
     """reconstruct_fn(masked_signal_real (P,M,2), mask (P,M)) -> recon (P,M,2) normalized.
 
     We mask each scenario's pulses with the same per-pulse scheme, reconstruct,
     then run MUSIC on the reconstructed array vs the true array.
-    Returns dict with angle error / detection rate for both.
+    Returns dict with angle error / detection rate for both, plus per-K breakdown.
+    If figdir is given, saves per-K MUSIC spectra plots there.
     """
     scan = np.linspace(-70, 70, 1401)
     M = cfg.M
@@ -142,8 +146,8 @@ def doa_metric(reconstruct_fn, test_scen, cfg, stats, n_eval=None):
     rng = np.random.default_rng(cfg.seed + 7)
 
     rec_errs, rec_hits, true_errs, true_hits = [], [], [], []
-    angles_true, angles_recon, angles_true_ref = [], [], []
-    spectrum_data = {}  # captured for the first scenario
+    by_k = {}      # K -> {"re": [...], "rh": [...], "te": [...], "th": [...]}
+    examples = {}  # K -> (spec_r, spec_t, truth) for the first scenario of this K
     for s in range(n_eval):
         sig = test_scen["signals"][s]                 # (P, M) complex
         K = len(test_scen["angles"][s])
@@ -168,17 +172,31 @@ def doa_metric(reconstruct_fn, test_scen, cfg, stats, n_eval=None):
         et, ht = _match_error(est_t, truth)
         rec_errs.append(er); rec_hits.append(hr)
         true_errs.append(et); true_hits.append(ht)
-        angles_true.append(np.sort(truth).tolist())
-        angles_recon.append(np.sort(est_r).tolist())
-        angles_true_ref.append(np.sort(est_t).tolist())
 
-        if s == 0:
-            spectrum_data = {
-                "scan": scan,
-                "recon": spec_r,
-                "true": spec_t,
-                "angles": np.sort(truth).tolist(),
-            }
+        d = by_k.setdefault(K, {"re": [], "rh": [], "te": [], "th": []})
+        d["re"].append(er); d["rh"].append(hr); d["te"].append(et); d["th"].append(ht)
+        if K not in examples:
+            examples[K] = (spec_r, spec_t, truth)
+
+    # per-K aggregated metrics
+    by_K = {K: {"K": K, "n_scenarios": len(v["re"]),
+                "DoA_err_recon_deg": float(np.mean(v["re"])),
+                "DoA_hit_recon": float(np.mean(v["rh"])),
+                "DoA_err_true_deg": float(np.mean(v["te"])),
+                "DoA_hit_true": float(np.mean(v["th"]))}
+            for K, v in sorted(by_k.items())}
+
+    # save per-K spectra plots
+    if figdir is not None:
+        from viz import plot_doa_spectrum
+        os.makedirs(figdir, exist_ok=True)
+        for K in sorted(examples):
+            spec_r, spec_t, truth = examples[K]
+            spec_r_db = 10 * np.log10(np.maximum(spec_r, 1e-12))
+            spec_t_db = 10 * np.log10(np.maximum(spec_t, 1e-12))
+            plot_doa_spectrum(scan, spec_r_db, spec_t_db, np.sort(truth),
+                              os.path.join(figdir, f"doa_spectrum_K{K}.png"),
+                              f"MUSIC DoA spectrum (K={K}) - reconstruction vs true array")
 
     return {
         "DoA_err_recon_deg": float(np.mean(rec_errs)),
@@ -186,11 +204,5 @@ def doa_metric(reconstruct_fn, test_scen, cfg, stats, n_eval=None):
         "DoA_err_true_deg": float(np.mean(true_errs)),
         "DoA_hit_true": float(np.mean(true_hits)),
         "n_scenarios": n_eval,
-        "angles_true": angles_true,
-        "angles_recon": angles_recon,
-        "angles_true_ref": angles_true_ref,
-        "spectrum_scan": spectrum_data.get("scan", []),
-        "spectrum_recon": spectrum_data.get("recon", []),
-        "spectrum_true": spectrum_data.get("true", []),
-        "spectrum_angles": spectrum_data.get("angles", []),
+        "by_K": by_K,
     }

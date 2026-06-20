@@ -46,7 +46,7 @@ class Config:
     seed: int = 0
 
     # ---- ensemble (option 2: stacking) ----
-    members: tuple = ("linear", "ridge", "huber", "rf", "xgb", "mlp")
+    members: tuple = ("linear", "ridge", "huber", "rf","knn", "xgb", "mlp")
     meta_alpha: float = 0.01     # Ridge alpha for the meta-model (low: let it favor strong members)
     ridge_alpha: float = 1.0
     huber_epsilon: float = 1.35

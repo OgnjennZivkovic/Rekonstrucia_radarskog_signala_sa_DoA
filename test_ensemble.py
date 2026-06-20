@@ -127,14 +127,11 @@ def main():
                             "ENSEMBLE reconstruction (orange = masked antennas)")
 
     if not args.no_doa:
-        d = doa_metric(make_reconstruct_fn(stack, cfg), test_scen, cfg, stats)
-        # save aggregate metrics (exclude per-scenario data)
-        skip = {"angles_true", "angles_recon", "angles_true_ref",
-                "spectrum_scan", "spectrum_recon", "spectrum_true", "spectrum_angles"}
-        agg = {k: v for k, v in d.items() if k not in skip}
-        pd.DataFrame([agg]).to_csv(os.path.join(out, "doa.csv"), index=False)
-        viz.plot_doa_spectrum(d, os.path.join(out, "doa_spectrum.png"))
-        viz.plot_doa_scatter(d, os.path.join(out, "doa_scatter.png"))
+        d = doa_metric(make_reconstruct_fn(stack, cfg), test_scen, cfg, stats,
+                       figdir=os.path.join(out, "doa_spectra"))
+        by_k = d.pop("by_K")
+        pd.DataFrame([d]).to_csv(os.path.join(out, "doa.csv"), index=False)
+        pd.DataFrame(list(by_k.values())).to_csv(os.path.join(out, "doa_by_k.csv"), index=False)
 
     print(f"ENSEMBLE NMSE = {results['ENSEMBLE']['NMSE_dB']:.2f} dB")
     print(f"All test results written to: {os.path.abspath(out)}/")

@@ -74,39 +74,26 @@ def plot_nmse_by_maskcount(by_count_per_model, path):
     plt.close(fig)
 
 
-def plot_doa_spectrum(doa_result, path):
-    """MUSIC pseudo-spectrum (dB) vs angle for one representative scenario.
+def plot_doa_spectrum(scan, spec_recon_db, spec_true_db, true_angles, path, title):
+    """MUSIC pseudo-spectrum (dB) vs angle for one scenario.
 
-    doa_result must contain keys:
-      'spectrum_scan'    -- angle grid (deg)
-      'spectrum_recon'   -- MUSIC spectrum from reconstructed signal
-      'spectrum_true'    -- MUSIC spectrum from true (non-masked) signal
-      'spectrum_angles'  -- true angles for this scenario (deg)
+    scan          -- angle grid (deg), shape (N_scan,)
+    spec_recon_db -- MUSIC spectrum from reconstructed signal (already in dB)
+    spec_true_db  -- MUSIC spectrum from true (non-masked) signal (already in dB)
+    true_angles   -- true angles for this scenario (deg)
+    path          -- output file path
+    title         -- plot title
     """
     plt = _mpl()
-    scan = doa_result["spectrum_scan"]
-    spec_r = doa_result["spectrum_recon"]
-    spec_t = doa_result["spectrum_true"]
-    truths = doa_result["spectrum_angles"]
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(scan, 10 * np.log10(np.maximum(spec_r, 1e-12)),
-            color="#534AB7", lw=1.2, label="reconstruction")
-    ax.plot(scan, 10 * np.log10(np.maximum(spec_t, 1e-12)),
-            color="#1D9E75", lw=1.0, ls="--", label="true array")
-    for i, a in enumerate(truths):
-        ax.axvline(a, color="#D85A30", ls=":", lw=1.2,
-                   label="true angle" if i == 0 else None)
-    ax.set_xlabel("angle (deg)")
-    ax.set_ylabel("MUSIC pseudo-spectrum (dB)")
-    ax.set_title("MUSIC DoA spectrum — reconstruction vs true array")
-    ax.grid(alpha=0.3)
-    ax.legend(fontsize=8)
-
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    ax.plot(scan, spec_recon_db, color="#534AB7", lw=1.6, label="reconstruction")
+    ax.plot(scan, spec_true_db, "--", color="#1D9E75", lw=1.4, label="true array")
+    for i, a in enumerate(true_angles):
+        ax.axvline(a, color="#D85A30", ls=":", lw=1.0, label="true angle" if i == 0 else None)
+    ax.set_xlabel("angle (deg)"); ax.set_ylabel("MUSIC pseudo-spectrum (dB)")
+    ax.set_title(title); ax.grid(alpha=0.3); ax.legend(loc="upper right", fontsize=9)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
+    fig.tight_layout(); fig.savefig(path, dpi=150); plt.close(fig)
 
 
 def plot_doa_scatter(doa_result, path):
