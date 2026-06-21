@@ -25,7 +25,7 @@ class Config:
     aug_phase_rot: bool = False         # fazno rotiranje antena
     aug_mirror: bool = False            # obrtanje redosleda antena 1-29 => 29-1
 
-    # JMLP
+    # MLP
     hidden: int = 256
     n_blocks: int = 4
     dropout: float = 0.0
