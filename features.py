@@ -1,17 +1,4 @@
-"""Turn the raw CSV into arrays every model can consume.
-
-The reconstruction unit is one pulse. For each pulse we build:
-    X    (n, 3M) : masked signal (2M real/imag, hidden antennas zeroed) + mask (M)
-    Y    (n, 2M) : the full signal (real/imag) -- the target
-    mask (n, M)  : 1 = observed, 0 = masked (the antennas to predict)
-
-Masks are random PER PULSE but fixed (seeded) so every member sees the same
-masked inputs -- essential for a fair comparison and for stacking.
-
-Splitting is by scenario. Normalization stats come from train only. The test
-split is also kept grouped by scenario (complex, de-normalized) so the DoA
-metric can run MUSIC per scenario.
-"""
+# sazvace podatke tako da Stacker moze koristiti
 
 import numpy as np
 from config import Config
@@ -19,7 +6,7 @@ from data import load_csv
 
 
 def _complex_to_real(sig):
-    """(..., M) complex -> (..., M, 2) float32."""
+    
     return np.stack([sig.real, sig.imag], axis=-1).astype(np.float32)
 
 
@@ -34,7 +21,7 @@ def _make_masks(n, M, mask_min, mask_max, seed):
 
 
 def _augment(sig, cfg, seed):
-    """Train-only augmentation on complex pulses (n, M). Returns augmented copy."""
+   
     rng = np.random.default_rng(seed)
     out = sig.copy()
     if cfg.aug_phase_rot:
@@ -62,7 +49,7 @@ def build_arrays(cfg: Config):
     val_idx = order[n_test:n_test + n_val]
     train_idx = order[n_test + n_val:]
 
-    def pulses_of(idx):
+    def pulses_of(idx): #pravi 2d matricu 
         return signals[idx].reshape(-1, cfg.M)                 # (n*P, M) complex
 
     tr_c = pulses_of(train_idx)
@@ -78,21 +65,21 @@ def build_arrays(cfg: Config):
     mean = tr.mean(axis=(0, 1), keepdims=True)                 # (1,1,2)
     std = tr.std(axis=(0, 1), keepdims=True) + 1e-8
 
-    def pack(real_arr, seed):
+    def pack(real_arr, seed): # pravi maske, tj. formatira podatke na X, Y, M
         x = (real_arr - mean) / std                            # normalize (n, M, 2)
         m = _make_masks(x.shape[0], cfg.M, cfg.mask_min, cfg.mask_max, seed)
         masked = x * m[:, :, None]
         X = np.concatenate([masked.reshape(len(x), -1), m], axis=1).astype(np.float32)  # (n,3M)
         Y = x.reshape(len(x), -1).astype(np.float32)           # (n,2M)
         return X, Y, m
-
+    # Podaci razdeljeni i spremni
     Xtr, Ytr, Mtr = pack(tr, cfg.seed + 1)
     Xva, Yva, Mva = pack(va, cfg.seed + 2)
     Xte, Yte, Mte = pack(te, cfg.seed + 3)
 
     stats = {"mean": mean, "std": std}
 
-    # test scenarios kept grouped (complex, de-normalized) for DoA
+    # Test za doa
     test_scen = {
         "signals": signals[test_idx],                          # (n_test_scen, P, M) complex
         "angles": [angles[i] for i in test_idx],
@@ -107,8 +94,8 @@ def build_arrays(cfg: Config):
     return splits, stats, test_scen
 
 
-def cap_rows(X, Y, cap, seed=0):
-    """Subsample rows for heavy members."""
+def cap_rows(X, Y, cap, seed=0):# ogranicava robusne modele
+    
     if cap is None or X.shape[0] <= cap:
         return X, Y
     rng = np.random.default_rng(seed)

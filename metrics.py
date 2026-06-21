@@ -1,27 +1,10 @@
-"""The metric set used for every model, so comparisons are one-to-one.
-
-Reconstruction metrics (computed on the MASKED antennas, in physical units):
-  - NMSE (ratio + dB)         : relative error power
-  - Explained Variance Score  : fraction of variance explained
-  - MAE on |error|            : typical error magnitude (robust)
-  - mean abs phase error (deg): domain metric -- is the phase preserved?
-  - complex correlation       : shape agreement, scale-independent
-  - P95 / max error           : tail behaviour
-  - NMSE by number masked     : how error grows with missing antennas
-
-DoA metric (per scenario, via MUSIC):
-  - mean angle error and detection rate, computed on the RECONSTRUCTED array
-    and on the TRUE array, so you see how much reconstruction degraded the
-    angle information rather than how good MUSIC is.
-  - figdir: if provided, saves per-K MUSIC spectra plots
-  - by_K: per-number-of-sources breakdown in returned dict
-"""
+#Metrike koriscene u modelu
 
 import os
 import numpy as np
 
 
-def _denorm(arr, stats):
+def _denorm(arr, stats): # vraca podatke u ono sta su bili pre obrade, kompleksene vrednosti
     """(n, 2M) -> (n, M, 2) physical complex-as-real."""
     M = stats["mean"].shape[-2] if stats["mean"].ndim == 3 else arr.shape[1] // 2
     n = arr.shape[0]
@@ -31,7 +14,7 @@ def _denorm(arr, stats):
     return a * std + mean
 
 
-def reconstruction_metrics(Yhat, Y, mask, stats):
+def reconstruction_metrics(Yhat, Y, mask, stats): # poredi zeljeni i stvarni rezultat
     """Yhat, Y: (n, 2M); mask: (n, M) 1=observed 0=masked."""
     yh = _denorm(Yhat, stats)           # (n, M, 2)
     yt = _denorm(Y, stats)
@@ -85,7 +68,7 @@ def reconstruction_metrics(Yhat, Y, mask, stats):
 
 
 # ----------------------------- DoA (MUSIC) --------------------------------
-def _steering(angle_deg, M, d=0.5):
+def _steering(angle_deg, M, d=0.5): # racuna fazni pomak svakog signala od antena
     m = np.arange(M)
     return np.exp(-1j * 2 * np.pi * d * m * np.sin(np.deg2rad(angle_deg)))
 
@@ -137,7 +120,7 @@ def doa_metric(reconstruct_fn, test_scen, cfg, stats, n_eval=None, figdir=None):
     Returns dict with angle error / detection rate for both, plus per-K breakdown.
     If figdir is given, saves per-K MUSIC spectra plots there.
     """
-    scan = np.linspace(-70, 70, 1401)
+    scan = np.linspace(-60, 60, 1401)
     M = cfg.M
     mean = stats["mean"].reshape(1, M, 2) if stats["mean"].shape[-2] == M else stats["mean"].reshape(1, 1, 2)
     std = stats["std"].reshape(mean.shape)

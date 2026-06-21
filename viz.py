@@ -1,4 +1,4 @@
-"""Shared plotting helpers (matplotlib, headless)."""
+"""Vizuelizacija dobijenih rezultata"""
 
 import os
 import numpy as np

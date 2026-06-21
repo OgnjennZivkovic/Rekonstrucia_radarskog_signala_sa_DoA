@@ -1,12 +1,4 @@
-"""Ensemble members with a common fit/predict interface.
-
-    member.fit(X, Y)            # X (n, 3M), Y (n, 2M)
-    yhat = member.predict(X)    # (n, 2M)
-
-All members solve the SAME job: map the masked signal + mask to the full
-signal. The MLP member wraps the torch ReconMLP and can also save a
-reconstruction figure per epoch (set .figdir and .stats before fit).
-"""
+#Clanovi stacka
 
 import os
 import numpy as np
@@ -19,7 +11,7 @@ from sklearn.multioutput import MultiOutputRegressor
 from features import cap_rows
 
 
-class SklearnMember:
+class SklearnMember: # ovde su sklearn clanovi
     def __init__(self, name, estimator, cap=None, seed=0):
         self.name = name
         self.est = estimator
@@ -35,8 +27,8 @@ class SklearnMember:
         return np.asarray(self.est.predict(X), dtype=np.float32)
 
 
-class MLPMember:
-    """ReconMLP trained to minimize MSE on the masked antennas."""
+class MLPMember: # MLP clan
+    
 
     def __init__(self, cfg):
         self.cfg = cfg
@@ -62,7 +54,7 @@ class MLPMember:
         n = Xt.shape[0]
         bs = self.cfg.batch_size
 
-        # fixed sample for the per-epoch figure
+        # fiksiran broj semlova po epohi
         fixed = (X[0, :2 * M].copy(), X[0, 2 * M:].copy(), Y[0].copy()) if self.figdir else None
 
         for ep in range(1, self.cfg.mlp_member_epochs + 1):
@@ -123,7 +115,7 @@ class MLPMember:
             self.device = "cpu"
 
 
-def build_member(name, cfg):
+def build_member(name, cfg): # kada se redom u run ensemble pokrecu modeli proverava ih i poziva
     cap = cfg.tree_sample_cap
     if name == "linear":
         return SklearnMember("linear", LinearRegression())

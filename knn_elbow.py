@@ -1,10 +1,4 @@
-"""KNN elbow curve — find the best k (number of neighbors).
-
-    python knn_elbow.py
-
-Trains KNN with k = 1, 2, 3, 5, 7, 10, 15, 20, 30, 50 on the train split,
-evaluates NMSE on the validation split, and saves an elbow-plot.
-"""
+#Pravi lakat krivu za KNN 
 
 import os
 import time
